@@ -30,7 +30,7 @@ class MayTest {
     fun setUp() {
         val cacheDir: File = ApplicationProvider.getApplicationContext<Context>().cacheDir
         dbFile = File.createTempFile("may", ".db", cacheDir)
-        may = May.with(dbFile)
+        may = May.openOrCreateDatastore(dbFile)
         testData.forEach { (k, v) -> may.put(k, v) }
     }
 
