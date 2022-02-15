@@ -10,4 +10,18 @@ android {
         minSdk 16
         consumerProguardFiles 'consumer-proguard-rules.pro'
     }
+
+    testOptions {
+        unitTests {
+            includeAndroidResources = true
+        }
+    }
+}
+
+dependencies {
+    implementation 'com.esotericsoftware:kryo:5.3.0'
+
+    testImplementation 'androidx.test:core:1.4.0'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.robolectric:robolectric:4.6'
 }
