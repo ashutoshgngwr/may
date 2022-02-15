@@ -1,8 +1,8 @@
-# May Android
+# May
 
-A deliberately simple persistent key-value store for Android. It uses [SQLite
-databases](https://developer.android.com/training/data-storage/sqlite) to store
-its data and [Kryo](https://github.com/EsotericSoftware/kryo) binary
+**A deliberately simple persistent key-value store for Android**. It uses
+[SQLite databases](https://developer.android.com/training/data-storage/sqlite)
+to store its data and [Kryo](https://github.com/EsotericSoftware/kryo) binary
 serialization to (de)serialize objects.
 
 ## Implementation
@@ -16,6 +16,14 @@ as the table primary key to optimise SQLite look-up performance. It uses [thread
 local](https://docs.oracle.com/javase/7/docs/api/java/lang/ThreadLocal.html)
 [Kryo](https://github.com/EsotericSoftware/kryo) instances to (de)serialize
 values and store them as blobs in the SQLite database.
+
+## Install
+
+Grab the latest version from Maven central at `io.github.ashutoshgngwr:may`.
+
+```gradle
+implementation 'io.github.ashutoshgngwr:may:main-SNAPSHOT'
+```
 
 ## Usage
 
