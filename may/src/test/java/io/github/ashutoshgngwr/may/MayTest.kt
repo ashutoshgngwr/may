@@ -78,4 +78,19 @@ class MayTest {
         assertTrue(may.remove("key-0"))
         assertFalse(may.remove("non-existing-key"))
     }
+
+    @Test
+    fun removeAll() {
+        // remove specific prefix
+        assertTrue(may.removeAll("key-0"))
+        assertFalse(may.contains("key-0"))
+        assertTrue(may.contains("key-1"))
+
+        // remove everything
+        assertTrue(may.removeAll())
+        assertFalse(may.contains("key-1"))
+
+        // with nothing to remove
+        assertFalse(may.removeAll())
+    }
 }

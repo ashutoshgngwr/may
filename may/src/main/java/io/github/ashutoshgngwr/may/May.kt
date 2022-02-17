@@ -209,13 +209,24 @@ class May private constructor(private val sqlite: SQLiteDatabase) : Closeable {
     }
 
     /**
-     * Removes a key and value associated with it from the datastore. Does nothing if the key doesn't
+     * Removes a key and its associated value from the datastore. Does nothing if the key doesn't
      * exist in the datastore.
      *
      * @return `true` if the key was removed, `false` otherwise.
      */
     fun remove(key: String): Boolean = rwLock.write {
         return sqlite.delete(TABLE, "$ID_COL = ?", arrayOf(key.hashCode().toString())) > 0
+    }
+
+    /**
+     * Removes all keys with a given prefix, and their associated values from the datastore.
+     *
+     * @param keyPrefix empty prefix removes all keys. non-empty prefix removes matching keys only.
+     * @return `true` if at least one key was removed, `false` otherwise.
+     */
+    @JvmOverloads
+    fun removeAll(keyPrefix: String = ""): Boolean = rwLock.write {
+        return sqlite.delete(TABLE, "$KEY_COL LIKE '$keyPrefix%'", null) > 0
     }
 
     companion object {
