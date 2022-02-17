@@ -19,10 +19,11 @@ values and store them as blobs in the SQLite database.
 
 ## Install
 
-Grab the latest version from Maven central at `io.github.ashutoshgngwr:may`.
+Grab the latest version from Maven Central at
+[`io.github.ashutoshgngwr:may`](https://repo1.maven.org/maven2/io/github/ashutoshgngwr/may/).
 
 ```gradle
-implementation 'io.github.ashutoshgngwr:may:main-SNAPSHOT'
+implementation 'io.github.ashutoshgngwr:may:0.1.0'
 ```
 
 ## Usage
