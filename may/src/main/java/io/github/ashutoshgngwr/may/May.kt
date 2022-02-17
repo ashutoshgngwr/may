@@ -10,6 +10,9 @@ import org.objenesis.strategy.StdInstantiatorStrategy
 import java.io.ByteArrayOutputStream
 import java.io.Closeable
 import java.io.File
+import java.util.concurrent.locks.ReentrantReadWriteLock
+import kotlin.concurrent.read
+import kotlin.concurrent.write
 
 /**
  * [May] is a deliberately simple persistent key-value store for Android. It uses [SQLite
@@ -21,6 +24,12 @@ import java.io.File
  * uses [key's `hashCode`][String.hashCode] as the table primary key to optimise look-up
  * performance. It uses [ThreadLocal] [Kryo] instances to (de)serialize values and store them as
  * blobs in the SQLite database.
+ *
+ * ## Multi-threading
+ *
+ * Under the hood, [May] uses [reentrant read-write locks][ReentrantReadWriteLock] to synchronize
+ * all of its operations, allowing multiple concurrent reads and at most one write at any given
+ * instant.
  *
  * ## Usage
  *
@@ -48,22 +57,26 @@ import java.io.File
  */
 class May private constructor(private val sqlite: SQLiteDatabase) : Closeable {
 
+    private val rwLock = ReentrantReadWriteLock()
+
     init {
-        sqlite.execSQL(
-            """
-            CREATE TABLE IF NOT EXISTS $TABLE (
-                `$ID_COL` integer NOT NULL PRIMARY KEY,
-                `$KEY_COL` text NOT NULL,
-                `$VALUE_COL` blob NOT NULL
-            );
-            """
-        )
+        rwLock.write {
+            sqlite.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS $TABLE (
+                    `$ID_COL` integer NOT NULL PRIMARY KEY,
+                    `$KEY_COL` text NOT NULL,
+                    `$VALUE_COL` blob NOT NULL
+                );
+                """
+            )
+        }
     }
 
     /**
      * Closes the datastore.
      */
-    override fun close() {
+    override fun close(): Unit = rwLock.write {
         sqlite.close()
     }
 
@@ -72,7 +85,7 @@ class May private constructor(private val sqlite: SQLiteDatabase) : Closeable {
      *
      * @return `true` if the [key] is found in the datastore, false otherwise.
      */
-    fun contains(key: String): Boolean {
+    fun contains(key: String): Boolean = rwLock.read {
         return sqlite.rawQuery(
             "SELECT 1 FROM $TABLE WHERE $ID_COL = ?;",
             arrayOf(key.hashCode().toString())
@@ -86,7 +99,7 @@ class May private constructor(private val sqlite: SQLiteDatabase) : Closeable {
      * @see SQLiteDatabase.disableWriteAheadLogging
      * @see SQLiteDatabase.enableWriteAheadLogging
      */
-    fun disableWriteAheadLogging() {
+    fun disableWriteAheadLogging(): Unit = rwLock.write {
         sqlite.disableWriteAheadLogging()
     }
 
@@ -96,7 +109,7 @@ class May private constructor(private val sqlite: SQLiteDatabase) : Closeable {
      *
      * @see SQLiteDatabase.enableWriteAheadLogging
      */
-    fun enableWriteAheadLogging() {
+    fun enableWriteAheadLogging(): Unit = rwLock.write {
         sqlite.enableWriteAheadLogging()
     }
 
@@ -105,7 +118,7 @@ class May private constructor(private val sqlite: SQLiteDatabase) : Closeable {
      *
      * @return value of type [Any] if the [key] is found in the datastore, `null` otherwise.
      */
-    fun get(key: String): Any? {
+    fun get(key: String): Any? = rwLock.read {
         return sqlite.query(
             TABLE,
             arrayOf(VALUE_COL),
@@ -148,7 +161,7 @@ class May private constructor(private val sqlite: SQLiteDatabase) : Closeable {
      * @return a [Set] of keys matching the given [prefix].
      */
     @JvmOverloads
-    fun keys(prefix: String = "", offset: Int = 0, limit: Int = -1): Set<String> {
+    fun keys(prefix: String = "", offset: Int = 0, limit: Int = -1): Set<String> = rwLock.read {
         // `SQLiteDatabase#query` fails when limit is -1, although it is a valid SQLite query.
         return sqlite.rawQuery(
             """
@@ -182,7 +195,7 @@ class May private constructor(private val sqlite: SQLiteDatabase) : Closeable {
      * @param key must be unique. Values are overwritten in the datastore for duplicate keys.
      * @param value value associated with the given [key].
      */
-    fun <V : Any> put(key: String, value: V) {
+    fun <V : Any> put(key: String, value: V) = rwLock.write {
         val valueOutputStream = ByteArrayOutputStream()
         val valueOutput = Output(valueOutputStream)
         kryoThreadLocal.require().writeClassAndObject(valueOutput, value)
@@ -201,7 +214,7 @@ class May private constructor(private val sqlite: SQLiteDatabase) : Closeable {
      *
      * @return `true` if the key was removed, `false` otherwise.
      */
-    fun remove(key: String): Boolean {
+    fun remove(key: String): Boolean = rwLock.write {
         return sqlite.delete(TABLE, "$ID_COL = ?", arrayOf(key.hashCode().toString())) > 0
     }
 
