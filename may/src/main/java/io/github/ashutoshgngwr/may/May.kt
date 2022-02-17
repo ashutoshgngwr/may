@@ -43,7 +43,7 @@ import java.io.File
  *    // list 10 keys by prefix in ascending order skipping the first 5 that match.
  *    val keys = may.keys("prefix/", offset = 5, limit = 10)
  *
- *    // close datastore; it usually should be done in Application#onDestroy lifecycle callback.
+ *    // close datastore
  *    may.close()
  */
 class May private constructor(private val sqlite: SQLiteDatabase) : Closeable {
