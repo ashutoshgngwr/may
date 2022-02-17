@@ -49,13 +49,12 @@ import java.io.File
 class May private constructor(private val sqlite: SQLiteDatabase) : Closeable {
 
     init {
-        sqlite.enableWriteAheadLogging()
         sqlite.execSQL(
             """
             CREATE TABLE IF NOT EXISTS $TABLE (
-                $ID_COL integer NOT NULL PRIMARY KEY,
-                $KEY_COL text NOT NULL,
-                $VALUE_COL blob NOT NULL
+                `$ID_COL` integer NOT NULL PRIMARY KEY,
+                `$KEY_COL` text NOT NULL,
+                `$VALUE_COL` blob NOT NULL
             );
             """
         )
@@ -78,6 +77,27 @@ class May private constructor(private val sqlite: SQLiteDatabase) : Closeable {
             "SELECT 1 FROM $TABLE WHERE $ID_COL = ?;",
             arrayOf(key.hashCode().toString())
         ).use { it.count > 0 }
+    }
+
+    /**
+     * Disables the features enabled by [enableWriteAheadLogging()][enableWriteAheadLogging].
+     *
+     * @see enableWriteAheadLogging
+     * @see SQLiteDatabase.disableWriteAheadLogging
+     * @see SQLiteDatabase.enableWriteAheadLogging
+     */
+    fun disableWriteAheadLogging() {
+        sqlite.disableWriteAheadLogging()
+    }
+
+    /**
+     * Enables write-ahead logging on the underlying [SQLiteDatabase]. On enabling, the
+     * [SQLiteDatabase] will create more files in the same directory to store WAL.
+     *
+     * @see SQLiteDatabase.enableWriteAheadLogging
+     */
+    fun enableWriteAheadLogging() {
+        sqlite.enableWriteAheadLogging()
     }
 
     /**
@@ -192,6 +212,7 @@ class May private constructor(private val sqlite: SQLiteDatabase) : Closeable {
         private const val VALUE_COL = "value"
 
         // https://hazelcast.com/blog/kryo-serializer/
+        @JvmStatic
         private val kryoThreadLocal = object : ThreadLocal<Kryo>() {
             override fun initialValue(): Kryo {
                 return Kryo().apply {
@@ -210,6 +231,7 @@ class May private constructor(private val sqlite: SQLiteDatabase) : Closeable {
          * @param path path of the datastore file.
          * @return a [May] datastore instance.
          */
+        @JvmStatic
         fun openOrCreateDatastore(path: String): May {
             return May(SQLiteDatabase.openOrCreateDatabase(path, null))
         }
@@ -220,6 +242,7 @@ class May private constructor(private val sqlite: SQLiteDatabase) : Closeable {
          * @param file reference to the datastore file (created if it doesn't already exist).
          * @return a [May] datastore instance.
          */
+        @JvmStatic
         fun openOrCreateDatastore(file: File): May {
             return openOrCreateDatastore(file.path)
         }
