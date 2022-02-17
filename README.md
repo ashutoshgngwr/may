@@ -23,13 +23,14 @@ Grab the latest version from Maven Central at
 [`io.github.ashutoshgngwr:may`](https://repo1.maven.org/maven2/io/github/ashutoshgngwr/may/).
 
 ```gradle
-implementation 'io.github.ashutoshgngwr:may:0.1.0'
+implementation 'io.github.ashutoshgngwr:may:0.1.1'
 ```
 
 ## Usage
 
-Usually, clients should not create more than a single instance of May per
-datastore.
+Usually, the clients **should not create more than one instance of May per
+datastore.** SQLite can only handle write operations from one thread at a time.
+Opening multiple May instances on the same datastore may lead to its corruption.
 
 ```kotlin
 val may = May.openOrCreateDatastore("path/to/my.db")
@@ -49,9 +50,24 @@ val wasRemoved = may.remove("key")
 // list 10 keys by prefix in ascending order skipping the first 5 that match.
 val keys = may.keys("prefix/", offset = 5, limit = 10)
 
-// close datastore; it usually should be done in Application#onDestroy lifecycle callback.
+// close datastore
 may.close()
 ```
+
+### Multi-threading
+
+Under the hood, May uses [reentrant read-write
+locks](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/concurrent/locks/ReentrantReadWriteLock.html)
+to synchronize all of its operations, allowing multiple concurrent reads and at
+most one write at any given instant.
+
+### SQLite Write-Ahead Logging
+
+Use
+[`May.enableWriteAheadLogging()`](https://github.com/ashutoshgngwr/may/blob/46f73a45ed7f62bd5203e3a0efee3848404d6999/may/src/main/java/io/github/ashutoshgngwr/may/May.kt#L112)
+and
+[`May.disableWriteAheadLogging()`](https://github.com/ashutoshgngwr/may/blob/46f73a45ed7f62bd5203e3a0efee3848404d6999/may/src/main/java/io/github/ashutoshgngwr/may/May.kt#L102)
+to configure WAL on the underlying SQLite database.
 
 ## License
 
