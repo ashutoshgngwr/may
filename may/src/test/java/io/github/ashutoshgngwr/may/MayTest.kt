@@ -53,8 +53,16 @@ class MayTest {
 
     @Test
     fun get() {
+        assertNull(may.get("non-existing"))
         assertNull(may.getAs<String>("key-1"))
         assertEquals(testData["key-1"], may.getAs<Value>("key-1"))
+    }
+
+    @Test
+    fun getAll() {
+        assertEquals(0, may.getAll("non-existing").size)
+        assertEquals(0, may.getAllAs<String>("key-").size)
+        assertEquals(testData, may.getAllAs<Value>())
     }
 
     @Test

@@ -70,6 +70,10 @@ class May private constructor(private val sqlite: SQLiteDatabase) : Closeable {
                 );
                 """
             )
+
+            sqlite.execSQL(
+                "CREATE INDEX IF NOT EXISTS key_idx ON $TABLE (`$KEY_COL` COLLATE NOCASE);"
+            )
         }
     }
 
@@ -119,7 +123,7 @@ class May private constructor(private val sqlite: SQLiteDatabase) : Closeable {
      * @return value of type [Any] if the [key] is found in the datastore, `null` otherwise.
      */
     fun get(key: String): Any? = rwLock.read {
-        return sqlite.query(
+        sqlite.query(
             TABLE,
             arrayOf(VALUE_COL),
             "$ID_COL = ?",
@@ -128,7 +132,43 @@ class May private constructor(private val sqlite: SQLiteDatabase) : Closeable {
             null,
             null,
             "1"
-        ).use(this::deserializeValue)
+        ).use { cursor ->
+            if (cursor.moveToFirst()) {
+                val input = cursor.getBlob(0) ?: return null
+                return kryoThreadLocal.require().readClassAndObject(Input(input))
+            }
+        }
+
+        return null
+    }
+
+    /**
+     * Retrieves all the keys with a given prefix and their associated values.
+     *
+     * @param keyPrefix empty prefix returns all keys. non-empty prefix returns only matching keys.
+     * @return a [Map]<[String], [Any]> of the matching key-value pairs.
+     */
+    @JvmOverloads
+    fun getAll(keyPrefix: String = ""): Map<String, Any> = rwLock.read {
+        val result = hashMapOf<String, Any>()
+        queryAll(keyPrefix).use { cursor ->
+            if (cursor.moveToFirst()) {
+                do {
+                    val input = cursor.getBlob(1) ?: continue
+                    val value = kryoThreadLocal.require().readClassAndObject(Input(input))
+                    result[cursor.getString(0)] = value
+                } while (cursor.moveToNext())
+            }
+        }
+
+        return result
+    }
+
+    private fun queryAll(keyPrefix: String): Cursor {
+        return sqlite.rawQuery(
+            "SELECT $KEY_COL, $VALUE_COL FROM $TABLE WHERE $KEY_COL LIKE '$keyPrefix%'",
+            null
+        )
     }
 
     /**
@@ -138,18 +178,31 @@ class May private constructor(private val sqlite: SQLiteDatabase) : Closeable {
      * @return value of type [V] if the [key] is found in the datastore and its value is instance of
      * [V], `null` otherwise.
      */
-    inline fun <reified V> getAs(key: String): V? {
+    inline fun <reified V : Any> getAs(key: String): V? {
         return get(key) as? V
     }
 
-    private fun deserializeValue(cursor: Cursor): Any? {
-        if (cursor.count < 1) {
-            return null
+    /**
+     * A convenience method that transforms the [Map]<[String], [Any]> returned by [getAll] method
+     * to [Map]<[String], [V]>.
+     *
+     * If a matching key has a non-null value that isn't of type V, it is discarded from the result.
+     *
+     * @param V type of the associated values.
+     * @param keyPrefix empty prefix returns all keys. non-empty prefix returns only matching keys.
+     * @return a [Map]<[String], [V]> of the matching key-value pairs.
+     * @see getAll
+     */
+    @JvmOverloads
+    inline fun <reified V : Any> getAllAs(keyPrefix: String = ""): Map<String, V> {
+        val result = hashMapOf<String, V>()
+        getAll(keyPrefix).forEach { entry ->
+            (entry.value as? V)?.also {
+                result[entry.key] = it
+            }
         }
 
-        cursor.moveToFirst()
-        val input = cursor.getBlob(0) ?: return null
-        return kryoThreadLocal.require().readClassAndObject(Input(input))
+        return result
     }
 
     /**
