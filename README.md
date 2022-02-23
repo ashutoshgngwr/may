@@ -23,7 +23,7 @@ Grab the latest version from Maven Central at
 [`io.github.ashutoshgngwr:may`](https://repo1.maven.org/maven2/io/github/ashutoshgngwr/may/).
 
 ```gradle
-implementation 'io.github.ashutoshgngwr:may:0.1.1'
+implementation 'io.github.ashutoshgngwr:may:0.2.1'
 ```
 
 ## Usage
@@ -53,6 +53,16 @@ val keys = may.keys("prefix/", offset = 5, limit = 10)
 // close datastore
 may.close()
 ```
+
+### Matching keys using a prefix
+
+May supports matching keys using a prefix for
+[find-keys](https://github.com/ashutoshgngwr/may/blob/d18b6a0b63f35229f1747e5ff083b60499b018fe/may/src/main/java/io/github/ashutoshgngwr/may/May.kt#L217),
+[get-all](https://github.com/ashutoshgngwr/may/blob/d18b6a0b63f35229f1747e5ff083b60499b018fe/may/src/main/java/io/github/ashutoshgngwr/may/May.kt#L152)
+and
+[remove-all](https://github.com/ashutoshgngwr/may/blob/d18b6a0b63f35229f1747e5ff083b60499b018fe/may/src/main/java/io/github/ashutoshgngwr/may/May.kt#L281)
+operations. These operations use a SQLite index on the key column to optimise
+lookups.
 
 ### Multi-threading
 
