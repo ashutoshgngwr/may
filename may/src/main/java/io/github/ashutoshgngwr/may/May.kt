@@ -1,7 +1,9 @@
 package io.github.ashutoshgngwr.may
 
 import android.content.ContentValues
+import android.content.Context
 import android.database.Cursor
+import android.database.DatabaseErrorHandler
 import android.database.sqlite.SQLiteDatabase
 import android.util.Log
 import com.esotericsoftware.kryo.Kryo
@@ -12,6 +14,7 @@ import org.objenesis.strategy.StdInstantiatorStrategy
 import java.io.ByteArrayOutputStream
 import java.io.Closeable
 import java.io.File
+import java.io.IOException
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
 import kotlin.concurrent.write
@@ -298,14 +301,47 @@ class May private constructor(private val sqlite: SQLiteDatabase) : Closeable {
         }
 
         /**
+         * Opens (or creates) a [May] datastore using [Context.openOrCreateDatabase] and returns its
+         * reference.
+         *
+         * @param name The name (unique in the application package) of the database.
+         * @param mode Operating mode.
+         * @param factory An optional factory class that is called to instantiate a cursor when
+         * query is called.
+         * @param errorHandler the [DatabaseErrorHandler] to be used when sqlite reports database
+         * corruption. if `null`, [android.database.DefaultDatabaseErrorHandler] is assumed.
+         * @throws IOException on failing to open the database.
+         * @see Context.openOrCreateDatabase
+         */
+        @JvmStatic
+        fun openOrCreateDatastore(
+            context: Context,
+            name: String,
+            mode: Int,
+            factory: SQLiteDatabase.CursorFactory? = null,
+            errorHandler: DatabaseErrorHandler? = null,
+        ): May {
+            try {
+                return May(context.openOrCreateDatabase(name, mode, factory, errorHandler))
+            } catch (e: Throwable) {
+                throw IOException("failed to initialise May datastore", e)
+            }
+        }
+
+        /**
          * Opens (or creates) a [May] datastore and returns its reference.
          *
          * @param path path of the datastore file.
          * @return a [May] datastore instance.
+         * @throws IOException on failing to open the database.
          */
         @JvmStatic
         fun openOrCreateDatastore(path: String): May {
-            return May(SQLiteDatabase.openOrCreateDatabase(path, null))
+            try {
+                return May(SQLiteDatabase.openOrCreateDatabase(path, null))
+            } catch (e: Throwable) {
+                throw IOException("failed to initialise May datastore", e)
+            }
         }
 
         /**
@@ -313,6 +349,7 @@ class May private constructor(private val sqlite: SQLiteDatabase) : Closeable {
          *
          * @param file reference to the datastore file (created if it doesn't already exist).
          * @return a [May] datastore instance.
+         * @throws IOException on failing to open the database.
          */
         @JvmStatic
         fun openOrCreateDatastore(file: File): May {
