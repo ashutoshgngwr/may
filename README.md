@@ -23,7 +23,7 @@ Grab the latest version from Maven Central at
 [`io.github.ashutoshgngwr:may`](https://repo1.maven.org/maven2/io/github/ashutoshgngwr/may/).
 
 ```gradle
-implementation 'io.github.ashutoshgngwr:may:0.2.3'
+implementation 'io.github.ashutoshgngwr:may:1.0.0'
 ```
 
 ## Usage
@@ -33,7 +33,8 @@ datastore.** SQLite can only handle write operations from one thread at a time.
 Opening multiple May instances on the same datastore may lead to its corruption.
 
 ```kotlin
-val may = May.openOrCreateDatastore("path/to/my.db")
+val may = May.openOrCreateDatastore("path/to/my.may.db")
+// or May.openOrCreateDatastore(context, "my.may.db", Context.MODE_PRIVATE)
 
 // persist value
 may.put("key", "value")
