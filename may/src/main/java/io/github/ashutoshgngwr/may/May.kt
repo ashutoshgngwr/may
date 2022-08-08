@@ -243,12 +243,18 @@ class May private constructor(private val sqlite: SQLiteDatabase) : Closeable {
 
     /**
      * Stores the [value] associated with a [key] in the datastore. If the [key] already exists the
-     * in the datastore, it overwrites the existing value.
+     * in the datastore, it overwrites the existing value. Removes the key from the datastore if the
+     * [value] is `null`.
      *
      * @param key must be unique. Values are overwritten in the datastore for duplicate keys.
      * @param value value associated with the given [key].
      */
-    fun <V : Any> put(key: String, value: V) = rwLock.write {
+    fun put(key: String, value: Any?) = rwLock.write {
+        if (value == null) {
+            remove(key)
+            return@write
+        }
+
         val valueOutputStream = ByteArrayOutputStream()
         val valueOutput = Output(valueOutputStream)
         kryoThreadLocal.require().writeClassAndObject(valueOutput, value)

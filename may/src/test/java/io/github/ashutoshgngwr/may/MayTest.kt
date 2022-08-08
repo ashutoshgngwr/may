@@ -3,7 +3,10 @@ package io.github.ashutoshgngwr.may
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import org.junit.After
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -79,6 +82,8 @@ class MayTest {
         val newVal = "new-value"
         may.put("key-0", newVal)
         assertEquals(newVal, may.getAs<String>("key-0"))
+        may.put("key-0", null)
+        assertNull(may.get("key-0"))
     }
 
     @Test
