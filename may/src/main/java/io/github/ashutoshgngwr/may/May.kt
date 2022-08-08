@@ -152,12 +152,10 @@ class May private constructor(private val sqlite: SQLiteDatabase) : Closeable {
     fun getAll(keyPrefix: String = ""): Map<String, Any> = rwLock.read {
         val result = hashMapOf<String, Any>()
         queryAll(keyPrefix).use { cursor ->
-            if (cursor.moveToFirst()) {
-                do {
-                    val input = cursor.getBlob(1) ?: continue
-                    val value = kryoThreadLocal.require().readClassAndObject(Input(input))
-                    result[cursor.getString(0)] = value
-                } while (cursor.moveToNext())
+            while (cursor.moveToNext()) {
+                val input = cursor.getBlob(1) ?: continue
+                val value = kryoThreadLocal.require().readClassAndObject(Input(input))
+                result[cursor.getString(0)] = value
             }
         }
 
@@ -233,10 +231,9 @@ class May private constructor(private val sqlite: SQLiteDatabase) : Closeable {
         }
 
         val keys = mutableSetOf<String>()
-        cursor.moveToFirst()
-        do {
+        while (cursor.moveToNext()) {
             keys.add(cursor.getString(0))
-        } while (cursor.moveToNext())
+        }
 
         return keys
     }
