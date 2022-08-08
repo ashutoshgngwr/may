@@ -36,6 +36,7 @@ captures/
 
 # IntelliJ
 *.iml
+.idea/.name
 .idea/workspace.xml
 .idea/tasks.xml
 .idea/gradle.xml
@@ -43,6 +44,8 @@ captures/
 .idea/dictionaries
 .idea/libraries
 .idea/caches
+.idea/compiler.xml
+.idea/misc.xml
 .idea/modules.xml
 .idea/navEditor.xml
 
