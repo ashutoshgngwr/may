@@ -72,7 +72,7 @@ class May private constructor(private val sqlite: SQLiteDatabase) : Closeable {
             )
 
             sqlite.execSQL(
-                "CREATE INDEX IF NOT EXISTS key_idx ON $TABLE (`$KEY_COL` COLLATE NOCASE);"
+                "CREATE INDEX IF NOT EXISTS key_idx ON $TABLE (`$KEY_COL`);"
             )
         }
     }
