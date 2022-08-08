@@ -3,7 +3,9 @@ package io.github.ashutoshgngwr.may
 import android.content.ContentValues
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
+import android.util.Log
 import com.esotericsoftware.kryo.Kryo
+import com.esotericsoftware.kryo.KryoException
 import com.esotericsoftware.kryo.io.Input
 import com.esotericsoftware.kryo.io.Output
 import org.objenesis.strategy.StdInstantiatorStrategy
@@ -134,8 +136,7 @@ class May private constructor(private val sqlite: SQLiteDatabase) : Closeable {
             "1"
         ).use { cursor ->
             if (cursor.moveToFirst()) {
-                val input = cursor.getBlob(0) ?: return null
-                return kryoThreadLocal.require().readClassAndObject(Input(input))
+                return kryoThreadLocal.deserialize(cursor.getBlob(0))
             }
         }
 
@@ -151,22 +152,17 @@ class May private constructor(private val sqlite: SQLiteDatabase) : Closeable {
     @JvmOverloads
     fun getAll(keyPrefix: String = ""): Map<String, Any> = rwLock.read {
         val result = hashMapOf<String, Any>()
-        queryAll(keyPrefix).use { cursor ->
+        sqlite.rawQuery(
+            "SELECT $KEY_COL, $VALUE_COL FROM $TABLE WHERE $KEY_COL LIKE '$keyPrefix%'",
+            null
+        ).use { cursor ->
             while (cursor.moveToNext()) {
-                val input = cursor.getBlob(1) ?: continue
-                val value = kryoThreadLocal.require().readClassAndObject(Input(input))
-                result[cursor.getString(0)] = value
+                kryoThreadLocal.deserialize(cursor.getBlob(1))
+                    ?.also { result[cursor.getString(0)] = it }
             }
         }
 
         return result
-    }
-
-    private fun queryAll(keyPrefix: String): Cursor {
-        return sqlite.rawQuery(
-            "SELECT $KEY_COL, $VALUE_COL FROM $TABLE WHERE $KEY_COL LIKE '$keyPrefix%'",
-            null
-        )
     }
 
     /**
@@ -252,15 +248,10 @@ class May private constructor(private val sqlite: SQLiteDatabase) : Closeable {
             return@write
         }
 
-        val valueOutputStream = ByteArrayOutputStream()
-        val valueOutput = Output(valueOutputStream)
-        kryoThreadLocal.require().writeClassAndObject(valueOutput, value)
-        valueOutput.flush()
-
         val row = ContentValues()
         row.put(ID_COL, key.hashCode())
         row.put(KEY_COL, key)
-        row.put(VALUE_COL, valueOutputStream.toByteArray())
+        row.put(VALUE_COL, kryoThreadLocal.serialize(value))
         sqlite.insertWithOnConflict(TABLE, null, row, SQLiteDatabase.CONFLICT_REPLACE)
     }
 
@@ -286,6 +277,7 @@ class May private constructor(private val sqlite: SQLiteDatabase) : Closeable {
     }
 
     companion object {
+        private const val LOG_TAG = "May"
         private const val TABLE = "store"
         private const val ID_COL = "id"
         private const val KEY_COL = "key"
@@ -330,5 +322,22 @@ class May private constructor(private val sqlite: SQLiteDatabase) : Closeable {
 
     private fun <T> ThreadLocal<T>.require(): T {
         return requireNotNull(get()) { "failed to get value from thread local for the current thread" }
+    }
+
+    private fun ThreadLocal<Kryo>.serialize(src: Any): ByteArray {
+        val valueOutputStream = ByteArrayOutputStream()
+        val valueOutput = Output(valueOutputStream)
+        require().writeClassAndObject(valueOutput, src)
+        valueOutput.flush()
+        return valueOutputStream.toByteArray()
+    }
+
+    private fun ThreadLocal<Kryo>.deserialize(src: ByteArray): Any? {
+        return try {
+            require().readClassAndObject(Input(src))
+        } catch (e: KryoException) {
+            Log.w(LOG_TAG, "failed to deserialize object", e)
+            null
+        }
     }
 }
