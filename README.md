@@ -23,7 +23,7 @@ Grab the latest version from Maven Central at
 [`io.github.ashutoshgngwr:may`](https://repo1.maven.org/maven2/io/github/ashutoshgngwr/may/).
 
 ```gradle
-implementation 'io.github.ashutoshgngwr:may:0.2.1'
+implementation 'io.github.ashutoshgngwr:may:0.2.2'
 ```
 
 ## Usage
