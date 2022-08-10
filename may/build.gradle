@@ -54,7 +54,7 @@ afterEvaluate {
                 artifact androidSourcesJar
 
                 pom {
-                    name = libraryArtifactId
+                    name = 'May'
                     description = 'A deliberately simple persistent key-value store for Android'
                     url = 'https://github.com/ashutoshgngwr/may'
                     licenses {
@@ -110,7 +110,7 @@ signing {
     sign publishing.publications
 }
 
-// disable signing when publishing to local maven repository (Jitpack needs it signing disabled).
+// disable signing when publishing to local maven repository (Jitpack needs the signing disabled).
 gradle.taskGraph.whenReady { taskGraph ->
     tasks.withType(Sign) {
         onlyIf { !taskGraph.hasTask(":may:publishToMavenLocal") }
